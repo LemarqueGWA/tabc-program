@@ -519,12 +519,14 @@
     });
 
     // ---------- poster rendering ----------
-    const CROSS_SVG = `<svg class="cross" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg">
+    // html2canvas does not reliably render SVG (inline or via data: URL), so we
+    // rasterize each icon to a PNG data URL at startup and use that instead.
+    const CROSS_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 44">
       <rect x="15" y="0" width="4" height="44" fill="#ffffff"/>
       <rect x="3" y="12" width="28" height="4" fill="#ffffff"/>
     </svg>`;
 
-    const CHURCH_SVG = `<svg class="church-icon" viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+    const CHURCH_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150">
       <rect x="0" y="138" width="240" height="6" fill="#d4a017"/>
       <rect x="46" y="96" width="28" height="42" fill="#d4a017"/>
       <rect x="166" y="96" width="28" height="42" fill="#d4a017"/>
@@ -536,6 +538,29 @@
       <rect x="118" y="75" width="4" height="22" fill="#d4a017"/>
       <rect x="109" y="84" width="22" height="4" fill="#d4a017"/>
     </svg>`;
+
+    function svgToPngDataUrl(svgString, width, height) {
+      return new Promise((resolve, reject) => {
+        const svgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          try {
+            resolve(canvas.toDataURL('image/png'));
+          } catch (e) { reject(e); }
+        };
+        img.onerror = (e) => reject(new Error('SVG rasterization failed'));
+        img.src = svgUrl;
+      });
+    }
+
+    // Populated by init() before first renderPoster()
+    let CROSS_IMG = '';
+    let CHURCH_IMG = '';
 
     function sermonTitleHtml(rawTitle, verse) {
       let parts = '';
@@ -591,7 +616,7 @@
 
       poster.innerHTML = `
         <div class="brand">
-          ${CROSS_SVG}
+          ${CROSS_IMG}
           <div class="brand-text">
             <div class="top">TRUTH ALONE</div>
             <div class="bot">BIBLE CHURCH</div>
@@ -599,7 +624,7 @@
         </div>
         <div class="title">WORSHIP SERVICE</div>
         <div class="program-label">PROGRAM<br>${dateDisplay}</div>
-        ${CHURCH_SVG}
+        ${CHURCH_IMG}
         <div class="schedule">${preHtml}${serviceHtml}${postHtml}</div>
       `;
     }
@@ -708,15 +733,32 @@
     document.getElementById('doneBtn').addEventListener('click', onDone);
 
     // ---------- init ----------
-    function init() {
+    async function init() {
       document.getElementById('date').value = fmtDateInput(getUpcomingSunday());
+      // Rasterize SVG icons to PNG data URLs (much higher res than display size
+      // so they stay sharp inside the 1080x1920 export).
+      try {
+        const [crossPng, churchPng] = await Promise.all([
+          svgToPngDataUrl(CROSS_SVG_RAW, 68, 88),     // cross displays at 34x44, 2x for retina
+          svgToPngDataUrl(CHURCH_SVG_RAW, 480, 300)   // church displays at 220x~138, ~2x
+        ]);
+        CROSS_IMG = `<img class="cross" src="${crossPng}" alt="" crossorigin="anonymous">`;
+        CHURCH_IMG = `<img class="church-icon" src="${churchPng}" alt="" crossorigin="anonymous">`;
+      } catch (e) {
+        console.warn('Icon rasterization failed; falling back to inline SVG.', e);
+        // Fallback: use SVG data URLs directly. Better-than-nothing.
+        const crossSvgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(CROSS_SVG_RAW)));
+        const churchSvgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(CHURCH_SVG_RAW)));
+        CROSS_IMG = `<img class="cross" src="${crossSvgUrl}" alt="">`;
+        CHURCH_IMG = `<img class="church-icon" src="${churchSvgUrl}" alt="">`;
+      }
       renderRows();
       renderPoster();
       rescalePreview();
     }
     init();
     window.addEventListener('resize', rescalePreview);
-    // re-scale after fonts load (text reflow can subtly change layout, but not size here)
+    // re-render after web fonts load (subtle layout shift possible)
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => { renderPoster(); rescalePreview(); });
     }
