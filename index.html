@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>TABC – Worship Service Program Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #f4f4f5; }
+  body {
+    font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+    color: #18181b;
+    padding: 18px 16px 130px;
+    max-width: 720px;
+    margin: 0 auto;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #71717a; font-size: 13px; margin-bottom: 18px; }
+
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .card h2 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #52525b;
+    margin-bottom: 12px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f4f4f5;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row.sub { padding-left: 30px; }
+  .row input[type="checkbox"] {
+    width: 22px; height: 22px;
+    accent-color: #18181b;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .row input[type="time"] {
+    width: 96px;
+    padding: 8px;
+    border: 1px solid #e4e4e7;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .row input[type="text"] {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #e4e4e7;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 15px;
+    min-width: 0;
+  }
+  .row .static-label { flex: 1; font-size: 15px; color: #18181b; }
+  .remove-btn {
+    background: transparent;
+    border: 0;
+    color: #a1a1aa;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+    flex-shrink: 0;
+  }
+  .remove-btn:hover { color: #ef4444; }
+
+  .field { margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 5px;
+  }
+  .field input, .field textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e4e4e7;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 15px;
+  }
+  .field textarea { min-height: 56px; resize: vertical; line-height: 1.4; }
+  .field input:focus, .field textarea:focus, .row input:focus {
+    outline: 2px solid #18181b;
+    outline-offset: -1px;
+    border-color: #18181b;
+  }
+
+  .add-btn {
+    width: 100%;
+    padding: 10px;
+    background: #fafafa;
+    border: 1px dashed #d4d4d8;
+    border-radius: 8px;
+    color: #52525b;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  .add-btn:hover { background: #f4f4f5; border-color: #a1a1aa; }
+
+  .preview-card { padding: 14px; }
+  .preview-container {
+    background: #18181b;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .preview-frame {
+    /* fixed aspect ratio of the poster: 1080:1920 = 9:16 */
+    position: relative;
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+  .preview-scaler {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1080px;
+    height: 1920px;
+    transform-origin: top left;
+    /* transform: scale(...) is set by JS based on container width */
+  }
+
+  /* The poster - real rendered output at 1080x1920 */
+  .poster {
+    width: 1080px;
+    height: 1920px;
+    background: #000;
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    padding: 88px 96px 70px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .poster .brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin-bottom: 56px;
+  }
+  .poster .brand .cross { width: 34px; height: 44px; flex-shrink: 0; }
+  .poster .brand .brand-text { display: flex; flex-direction: column; }
+  .poster .brand .brand-text .top {
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    line-height: 1;
+  }
+  .poster .brand .brand-text .bot {
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: .35em;
+    line-height: 1;
+    margin-top: 10px;
+  }
+  .poster .title {
+    font-size: 112px;
+    font-weight: 800;
+    line-height: 1.0;
+    text-align: center;
+    margin-bottom: 56px;
+    letter-spacing: -0.01em;
+  }
+  .poster .program-label {
+    font-size: 38px;
+    font-weight: 300;
+    letter-spacing: .32em;
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 56px;
+  }
+  .poster .church-icon {
+    width: 220px;
+    height: auto;
+    margin: 0 auto 78px;
+    display: block;
+  }
+  .poster .schedule {
+    font-size: 33px;
+    font-weight: 400;
+    line-height: 1.55;
+  }
+  .poster .schedule .item {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    column-gap: 28px;
+    margin-bottom: 6px;
+  }
+  .poster .schedule .item .time { font-weight: 500; white-space: nowrap; }
+  .poster .schedule .gap { height: 26px; }
+  .poster .schedule .service-block { margin-top: 26px; margin-bottom: 26px; }
+  .poster .schedule .subitems {
+    list-style: none;
+    padding-left: 58px;
+    margin-top: 6px;
+  }
+  .poster .schedule .subitems li {
+    position: relative;
+    padding-left: 30px;
+    margin-bottom: 2px;
+  }
+  .poster .schedule .subitems li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 36px;
+    line-height: 1.45;
+  }
+  .poster .schedule .sermon-extra {
+    padding-left: 30px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
+  .poster .schedule .sermon-extra strong { font-weight: 700; }
+
+  /* sticky action bar */
+  .actions {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,.97);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid #e4e4e7;
+    z-index: 10;
+  }
+  .actions-inner {
+    max-width: 688px;
+    margin: 0 auto;
+    display: flex;
+    gap: 10px;
+  }
+  .done-btn {
+    flex: 1;
+    padding: 15px;
+    background: #18181b;
+    color: white;
+    border: 0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: .02em;
+    transition: background .15s ease;
+  }
+  .done-btn:hover:not(:disabled) { background: #000; }
+  .done-btn:disabled {
+    background: #a1a1aa;
+    cursor: wait;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: #71717a;
+    margin-top: 8px;
+    line-height: 1.45;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #18181b;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity .25s ease;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <h1>Worship Service Program</h1>
+  <div class="subtitle">Truth Alone Bible Church — Sunday program builder</div>
+
+  <div class="card">
+    <h2>Service Date</h2>
+    <div class="field">
+      <input type="date" id="date">
+    </div>
+    <div class="hint">Defaults to the upcoming Sunday. Change if you're preparing for a different week.</div>
+  </div>
+
+  <div class="card">
+    <h2>Pre-service</h2>
+    <div id="preItems"></div>
+    <button class="add-btn" data-add="pre">+ Add item</button>
+  </div>
+
+  <div class="card">
+    <h2>Service Block</h2>
+    <div class="row">
+      <input type="checkbox" id="serviceEnabled" checked>
+      <input type="time" id="serviceTime" value="09:30">
+      <span class="static-label">Service Starts</span>
+    </div>
+    <div id="subItems" style="margin-top:6px"></div>
+    <button class="add-btn" data-add="sub">+ Add sub-item</button>
+  </div>
+
+  <div class="card">
+    <h2>Sermon Details</h2>
+    <div class="field">
+      <label>Preacher (optional)</label>
+      <input type="text" id="preacher" placeholder="e.g. Hanrias">
+    </div>
+    <div class="field">
+      <label>Title (optional)</label>
+      <textarea id="sermonTitle" placeholder="e.g. SALVATION: To the Praise of His Glory (Part 1)"></textarea>
+      <div class="hint">If your title starts with a colon-tagged label (e.g. "SALVATION:"), the label will render in bold automatically.</div>
+    </div>
+    <div class="field">
+      <label>Verse (optional)</label>
+      <input type="text" id="sermonVerse" placeholder="e.g. Ephesians 1:1-6a">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Post-service</h2>
+    <div id="postItems"></div>
+    <button class="add-btn" data-add="post">+ Add item</button>
+  </div>
+
+  <div class="card preview-card">
+    <h2>Preview</h2>
+    <div class="preview-container">
+      <div class="preview-frame" id="previewFrame">
+        <div class="preview-scaler" id="previewScaler">
+          <div class="poster" id="poster"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <div class="actions-inner">
+      <button class="done-btn" id="doneBtn">Done — Save / Share JPG</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    'use strict';
+
+    // ---------- state ----------
+    let preItems = [
+      { id: uid(), label: 'Service Groups start preparation', time: '08:00', enabled: true },
+      { id: uid(), label: 'Corporate Prayer',                 time: '09:00', enabled: true },
+      { id: uid(), label: 'Fellowship',                       time: '09:15', enabled: true }
+    ];
+    let subItems = [
+      { id: uid(), label: 'Welcome & Announcements', enabled: true },
+      { id: uid(), label: 'Scripture Reading',       enabled: true },
+      { id: uid(), label: 'Worship',                 enabled: true },
+      { id: 'sermon-fixed', label: 'Sermon', enabled: true, isSermon: true, locked: true },
+      { id: uid(), label: 'Communion',               enabled: true },
+      { id: uid(), label: 'Final Song',              enabled: true }
+    ];
+    let postItems = [
+      { id: uid(), label: 'Fellowship',          time: '10:45', enabled: true },
+      { id: uid(), label: 'Truth Discussion',    time: '11:15', enabled: true },
+      { id: uid(), label: 'Fellowship & Lunch',  time: '11:45', enabled: true }
+    ];
+
+    function uid() { return 'i' + Math.random().toString(36).slice(2, 9); }
+
+    // ---------- date helpers ----------
+    function getUpcomingSunday() {
+      const d = new Date();
+      const day = d.getDay();
+      const diff = day === 0 ? 0 : 7 - day;
+      d.setDate(d.getDate() + diff);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+    function fmtDateInput(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${da}`;
+    }
+    function fmtDateDisplay(dateStr) {
+      if (!dateStr) return '';
+      const [y, m, da] = dateStr.split('-').map(Number);
+      const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+      return `${da}  ${months[m-1]}  ${y}`;
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ---------- form row rendering ----------
+    function renderRows() {
+      const preDiv = document.getElementById('preItems');
+      preDiv.innerHTML = preItems.map(rowMainHtml.bind(null, 'pre')).join('');
+
+      const subDiv = document.getElementById('subItems');
+      subDiv.innerHTML = subItems.map(rowSubHtml).join('');
+
+      const postDiv = document.getElementById('postItems');
+      postDiv.innerHTML = postItems.map(rowMainHtml.bind(null, 'post')).join('');
+    }
+    function rowMainHtml(list, it) {
+      return `<div class="row">
+        <input type="checkbox" ${it.enabled ? 'checked' : ''} data-id="${it.id}" data-list="${list}" data-prop="enabled">
+        <input type="time" value="${escapeHtml(it.time)}" data-id="${it.id}" data-list="${list}" data-prop="time">
+        <input type="text" value="${escapeHtml(it.label)}" data-id="${it.id}" data-list="${list}" data-prop="label">
+        <button class="remove-btn" data-id="${it.id}" data-list="${list}" data-remove title="Remove">×</button>
+      </div>`;
+    }
+    function rowSubHtml(it) {
+      if (it.isSermon) {
+        return `<div class="row sub">
+          <input type="checkbox" ${it.enabled ? 'checked' : ''} data-id="${it.id}" data-list="sub" data-prop="enabled">
+          <span class="static-label">Sermon (edit details below)</span>
+        </div>`;
+      }
+      return `<div class="row sub">
+        <input type="checkbox" ${it.enabled ? 'checked' : ''} data-id="${it.id}" data-list="sub" data-prop="enabled">
+        <input type="text" value="${escapeHtml(it.label)}" data-id="${it.id}" data-list="sub" data-prop="label">
+        <button class="remove-btn" data-id="${it.id}" data-list="sub" data-remove title="Remove">×</button>
+      </div>`;
+    }
+
+    function getList(name) {
+      return name === 'pre' ? preItems : name === 'sub' ? subItems : postItems;
+    }
+    function setList(name, val) {
+      if (name === 'pre') preItems = val;
+      else if (name === 'sub') subItems = val;
+      else postItems = val;
+    }
+
+    // event delegation: input
+    document.body.addEventListener('input', (e) => {
+      const t = e.target;
+      if (t.dataset.id) {
+        const list = getList(t.dataset.list);
+        const item = list.find(i => i.id === t.dataset.id);
+        if (!item) return;
+        const prop = t.dataset.prop;
+        if (prop === 'enabled') item.enabled = t.checked;
+        else item[prop] = t.value;
+        renderPoster();
+        return;
+      }
+      if (['serviceEnabled','serviceTime','preacher','sermonTitle','sermonVerse','date'].includes(t.id)) {
+        renderPoster();
+      }
+    });
+    document.body.addEventListener('change', (e) => {
+      if (e.target.type === 'checkbox' && e.target.dataset.id) {
+        const list = getList(e.target.dataset.list);
+        const item = list.find(i => i.id === e.target.dataset.id);
+        if (item) item.enabled = e.target.checked;
+        renderPoster();
+      }
+    });
+
+    // event delegation: clicks (add / remove)
+    document.body.addEventListener('click', (e) => {
+      const t = e.target;
+      const addList = t.dataset && t.dataset.add;
+      if (addList) {
+        if (addList === 'pre') preItems.push({ id: uid(), label: 'New item', time: '08:00', enabled: true });
+        else if (addList === 'sub') subItems.push({ id: uid(), label: 'New item', enabled: true });
+        else if (addList === 'post') postItems.push({ id: uid(), label: 'New item', time: '12:00', enabled: true });
+        renderRows();
+        renderPoster();
+        return;
+      }
+      if (t.dataset && t.dataset.remove !== undefined) {
+        const listName = t.dataset.list;
+        const id = t.dataset.id;
+        setList(listName, getList(listName).filter(i => i.id !== id || i.locked));
+        renderRows();
+        renderPoster();
+      }
+    });
+
+    // ---------- poster rendering ----------
+    const CROSS_SVG = `<svg class="cross" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg">
+      <rect x="15" y="0" width="4" height="44" fill="#ffffff"/>
+      <rect x="3" y="12" width="28" height="4" fill="#ffffff"/>
+    </svg>`;
+
+    const CHURCH_SVG = `<svg class="church-icon" viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="138" width="240" height="6" fill="#d4a017"/>
+      <rect x="46" y="96" width="28" height="42" fill="#d4a017"/>
+      <rect x="166" y="96" width="28" height="42" fill="#d4a017"/>
+      <path d="M 120 32 L 74 76 L 74 138 L 166 138 L 166 76 Z" fill="#d4a017"/>
+      <rect x="118" y="10" width="4" height="22" fill="#d4a017"/>
+      <rect x="112" y="16" width="16" height="4" fill="#d4a017"/>
+      <path d="M 108 138 L 108 116 Q 108 106 120 106 Q 132 106 132 116 L 132 138 Z" fill="#000000"/>
+      <circle cx="120" cy="86" r="11" fill="#000000"/>
+      <rect x="118" y="75" width="4" height="22" fill="#d4a017"/>
+      <rect x="109" y="84" width="22" height="4" fill="#d4a017"/>
+    </svg>`;
+
+    function sermonTitleHtml(rawTitle, verse) {
+      let parts = '';
+      if (rawTitle) {
+        const colonIdx = rawTitle.indexOf(':');
+        if (colonIdx > 0 && colonIdx < 24) {
+          const head = escapeHtml(rawTitle.slice(0, colonIdx));
+          const tail = escapeHtml(rawTitle.slice(colonIdx));
+          parts = `<strong>${head}</strong>${tail}`;
+        } else {
+          parts = escapeHtml(rawTitle);
+        }
+        if (verse) parts += ' - ' + escapeHtml(verse);
+      } else if (verse) {
+        parts = escapeHtml(verse);
+      }
+      return parts;
+    }
+
+    function renderPoster() {
+      const poster = document.getElementById('poster');
+      const dateStr = document.getElementById('date').value;
+      const dateDisplay = fmtDateDisplay(dateStr);
+      const serviceEnabled = document.getElementById('serviceEnabled').checked;
+      const serviceTime = document.getElementById('serviceTime').value;
+      const preacher = document.getElementById('preacher').value.trim();
+      const sermonTitle = document.getElementById('sermonTitle').value.trim();
+      const sermonVerse = document.getElementById('sermonVerse').value.trim();
+
+      const preHtml = preItems.filter(i => i.enabled).map(it =>
+        `<div class="item"><div class="time">${escapeHtml(it.time)}</div><div>${escapeHtml(it.label)}</div></div>`
+      ).join('');
+
+      let serviceHtml = '';
+      if (serviceEnabled) {
+        let subHtml = '';
+        subItems.filter(i => i.enabled).forEach(it => {
+          if (it.isSermon) {
+            const sermonLabel = preacher ? `Sermon (${escapeHtml(preacher)})` : 'Sermon';
+            subHtml += `<li>${sermonLabel}</li>`;
+            const titleVerse = sermonTitleHtml(sermonTitle, sermonVerse);
+            if (titleVerse) subHtml += `<div class="sermon-extra">${titleVerse}</div>`;
+          } else {
+            subHtml += `<li>${escapeHtml(it.label)}</li>`;
+          }
+        });
+        serviceHtml = `<div class="service-block"><div class="item"><div class="time">${escapeHtml(serviceTime)}</div><div>Service Starts<ul class="subitems">${subHtml}</ul></div></div></div>`;
+      }
+
+      const postHtml = postItems.filter(i => i.enabled).map(it =>
+        `<div class="item"><div class="time">${escapeHtml(it.time)}</div><div>${escapeHtml(it.label)}</div></div>`
+      ).join('');
+
+      poster.innerHTML = `
+        <div class="brand">
+          ${CROSS_SVG}
+          <div class="brand-text">
+            <div class="top">TRUTH ALONE</div>
+            <div class="bot">BIBLE CHURCH</div>
+          </div>
+        </div>
+        <div class="title">WORSHIP SERVICE</div>
+        <div class="program-label">PROGRAM<br>${dateDisplay}</div>
+        ${CHURCH_SVG}
+        <div class="schedule">${preHtml}${serviceHtml}${postHtml}</div>
+      `;
+    }
+
+    // ---------- preview scaling ----------
+    function rescalePreview() {
+      const frame = document.getElementById('previewFrame');
+      const scaler = document.getElementById('previewScaler');
+      const frameWidth = frame.clientWidth;
+      const scale = frameWidth / 1080;
+      scaler.style.transform = `scale(${scale})`;
+    }
+
+    // ---------- toast ----------
+    let toastTimer;
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    // ---------- capture & share ----------
+    async function captureJpg() {
+      // Clone the poster to a hidden offscreen wrapper to avoid being affected
+      // by the scaler's transform and to guarantee real 1080x1920 capture.
+      const source = document.getElementById('poster');
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.left = '-100000px';
+      wrapper.style.top = '0';
+      wrapper.style.width = '1080px';
+      wrapper.style.height = '1920px';
+      wrapper.style.background = '#000';
+      const clone = source.cloneNode(true);
+      // ensure clone has explicit size (not scaled)
+      clone.style.transform = 'none';
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      try { await document.fonts.ready; } catch (e) {}
+
+      const canvas = await html2canvas(clone, {
+        width: 1080,
+        height: 1920,
+        windowWidth: 1080,
+        windowHeight: 1920,
+        backgroundColor: '#000000',
+        scale: 1,
+        useCORS: true,
+        logging: false
+      });
+      wrapper.remove();
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92);
+      });
+    }
+
+    async function onDone() {
+      const btn = document.getElementById('doneBtn');
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Generating image...';
+      try {
+        const blob = await captureJpg();
+        const dateStr = document.getElementById('date').value || 'program';
+        const filename = `TABC-Program-${dateStr}.jpg`;
+        const file = new File([blob], filename, { type: 'image/jpeg' });
+
+        // Try Web Share with files (best for mobile -> WhatsApp)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Worship Service Program',
+              text: 'Truth Alone Bible Church — Worship Service Program'
+            });
+            toast('Shared');
+            return;
+          } catch (err) {
+            if (err && err.name === 'AbortError') { toast('Cancelled'); return; }
+            // fall through to download
+          }
+        }
+
+        // Fallback: download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast('Downloaded');
+      } catch (e) {
+        console.error(e);
+        alert('Could not generate the image. ' + (e && e.message ? e.message : ''));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+      }
+    }
+
+    document.getElementById('doneBtn').addEventListener('click', onDone);
+
+    // ---------- init ----------
+    function init() {
+      document.getElementById('date').value = fmtDateInput(getUpcomingSunday());
+      renderRows();
+      renderPoster();
+      rescalePreview();
+    }
+    init();
+    window.addEventListener('resize', rescalePreview);
+    // re-scale after fonts load (text reflow can subtly change layout, but not size here)
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { renderPoster(); rescalePreview(); });
+    }
+  </script>
+</body>
+</html>
