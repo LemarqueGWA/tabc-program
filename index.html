@@ -156,32 +156,10 @@
     background: #000;
     color: #fff;
     font-family: 'Montserrat', sans-serif;
-    padding: 88px 96px 70px;
+    padding: 130px 96px 70px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  }
-  .poster .brand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    margin-bottom: 56px;
-  }
-  .poster .brand .cross { width: 34px; height: 44px; flex-shrink: 0; }
-  .poster .brand .brand-text { display: flex; flex-direction: column; }
-  .poster .brand .brand-text .top {
-    font-size: 46px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    line-height: 1;
-  }
-  .poster .brand .brand-text .bot {
-    font-size: 22px;
-    font-weight: 300;
-    letter-spacing: .35em;
-    line-height: 1;
-    margin-top: 10px;
   }
   .poster .title {
     font-size: 112px;
@@ -197,13 +175,42 @@
     letter-spacing: .32em;
     text-align: center;
     line-height: 1.5;
-    margin-bottom: 56px;
+    margin-bottom: 64px;
   }
-  .poster .church-icon {
-    width: 220px;
-    height: auto;
+  /* Center brand block (replaces the old gold church icon) */
+  .poster .center-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
     margin: 0 auto 78px;
+  }
+  .poster .center-brand .cross-img {
+    width: 66px;
+    height: 86px;
+    flex-shrink: 0;
+  }
+  .poster .center-brand .brand-text { display: flex; flex-direction: column; }
+  .poster .center-brand .brand-text .top {
+    font-size: 78px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    line-height: 1;
+  }
+  .poster .center-brand .brand-text .bot {
+    font-size: 36px;
+    font-weight: 300;
+    letter-spacing: .32em;
+    line-height: 1;
+    margin-top: 14px;
+  }
+  /* Optional: if user supplies a real PNG/SVG logo later, this is the
+     class to size it. Currently unused. */
+  .poster .center-brand-img {
     display: block;
+    margin: 0 auto 78px;
+    max-width: 720px;
+    height: auto;
   }
   .poster .schedule {
     font-size: 33px;
@@ -389,8 +396,8 @@
     ];
     let subItems = [
       { id: uid(), label: 'Welcome & Announcements', enabled: true },
-      { id: uid(), label: 'Scripture Reading',       enabled: true },
       { id: uid(), label: 'Worship',                 enabled: true },
+      { id: uid(), label: 'Scripture Reading',       enabled: true },
       { id: 'sermon-fixed', label: 'Sermon', enabled: true, isSermon: true, locked: true },
       { id: uid(), label: 'Communion',               enabled: true },
       { id: uid(), label: 'Final Song',              enabled: true }
@@ -519,24 +526,18 @@
     });
 
     // ---------- poster rendering ----------
-    // html2canvas does not reliably render SVG (inline or via data: URL), so we
-    // rasterize each icon to a PNG data URL at startup and use that instead.
+    // ============================================================
+    // OPTIONAL: To use a real logo image instead of the text wordmark,
+    // set CUSTOM_LOGO_DATA_URL to a base64 data URL of your PNG/SVG.
+    // Recommended: a wide transparent PNG, white on transparent.
+    // Example: const CUSTOM_LOGO_DATA_URL = 'data:image/png;base64,iVBOR...';
+    // ============================================================
+    const CUSTOM_LOGO_DATA_URL = '';
+
+    // White cross used in the wordmark fallback (rasterized for html2canvas).
     const CROSS_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 44">
       <rect x="15" y="0" width="4" height="44" fill="#ffffff"/>
       <rect x="3" y="12" width="28" height="4" fill="#ffffff"/>
-    </svg>`;
-
-    const CHURCH_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150">
-      <rect x="0" y="138" width="240" height="6" fill="#d4a017"/>
-      <rect x="46" y="96" width="28" height="42" fill="#d4a017"/>
-      <rect x="166" y="96" width="28" height="42" fill="#d4a017"/>
-      <path d="M 120 32 L 74 76 L 74 138 L 166 138 L 166 76 Z" fill="#d4a017"/>
-      <rect x="118" y="10" width="4" height="22" fill="#d4a017"/>
-      <rect x="112" y="16" width="16" height="4" fill="#d4a017"/>
-      <path d="M 108 138 L 108 116 Q 108 106 120 106 Q 132 106 132 116 L 132 138 Z" fill="#000000"/>
-      <circle cx="120" cy="86" r="11" fill="#000000"/>
-      <rect x="118" y="75" width="4" height="22" fill="#d4a017"/>
-      <rect x="109" y="84" width="22" height="4" fill="#d4a017"/>
     </svg>`;
 
     function svgToPngDataUrl(svgString, width, height) {
@@ -553,14 +554,13 @@
             resolve(canvas.toDataURL('image/png'));
           } catch (e) { reject(e); }
         };
-        img.onerror = (e) => reject(new Error('SVG rasterization failed'));
+        img.onerror = () => reject(new Error('SVG rasterization failed'));
         img.src = svgUrl;
       });
     }
 
     // Populated by init() before first renderPoster()
-    let CROSS_IMG = '';
-    let CHURCH_IMG = '';
+    let CENTER_BRAND_HTML = '';
 
     function sermonTitleHtml(rawTitle, verse) {
       let parts = '';
@@ -615,16 +615,9 @@
       ).join('');
 
       poster.innerHTML = `
-        <div class="brand">
-          ${CROSS_IMG}
-          <div class="brand-text">
-            <div class="top">TRUTH ALONE</div>
-            <div class="bot">BIBLE CHURCH</div>
-          </div>
-        </div>
         <div class="title">WORSHIP SERVICE</div>
         <div class="program-label">PROGRAM<br>${dateDisplay}</div>
-        ${CHURCH_IMG}
+        ${CENTER_BRAND_HTML}
         <div class="schedule">${preHtml}${serviceHtml}${postHtml}</div>
       `;
     }
@@ -737,20 +730,33 @@
       document.getElementById('date').value = fmtDateInput(getUpcomingSunday());
       // Rasterize SVG icons to PNG data URLs (much higher res than display size
       // so they stay sharp inside the 1080x1920 export).
-      try {
-        const [crossPng, churchPng] = await Promise.all([
-          svgToPngDataUrl(CROSS_SVG_RAW, 68, 88),     // cross displays at 34x44, 2x for retina
-          svgToPngDataUrl(CHURCH_SVG_RAW, 480, 300)   // church displays at 220x~138, ~2x
-        ]);
-        CROSS_IMG = `<img class="cross" src="${crossPng}" alt="" crossorigin="anonymous">`;
-        CHURCH_IMG = `<img class="church-icon" src="${churchPng}" alt="" crossorigin="anonymous">`;
-      } catch (e) {
-        console.warn('Icon rasterization failed; falling back to inline SVG.', e);
-        // Fallback: use SVG data URLs directly. Better-than-nothing.
-        const crossSvgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(CROSS_SVG_RAW)));
-        const churchSvgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(CHURCH_SVG_RAW)));
-        CROSS_IMG = `<img class="cross" src="${crossSvgUrl}" alt="">`;
-        CHURCH_IMG = `<img class="church-icon" src="${churchSvgUrl}" alt="">`;
+      if (CUSTOM_LOGO_DATA_URL) {
+        // User supplied their own logo image — use it directly.
+        CENTER_BRAND_HTML = `<img class="center-brand-img" src="${CUSTOM_LOGO_DATA_URL}" alt="Truth Alone Bible Church">`;
+      } else {
+        // Fallback: rasterize the cross and use it with the wordmark in styled text.
+        try {
+          const crossPng = await svgToPngDataUrl(CROSS_SVG_RAW, 132, 172); // 66x86 displayed, 2x for sharpness
+          CENTER_BRAND_HTML = `
+            <div class="center-brand">
+              <img class="cross-img" src="${crossPng}" alt="">
+              <div class="brand-text">
+                <div class="top">TRUTH ALONE</div>
+                <div class="bot">BIBLE CHURCH</div>
+              </div>
+            </div>`;
+        } catch (e) {
+          console.warn('Cross rasterization failed; falling back to inline SVG.', e);
+          const crossSvgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(CROSS_SVG_RAW)));
+          CENTER_BRAND_HTML = `
+            <div class="center-brand">
+              <img class="cross-img" src="${crossSvgUrl}" alt="">
+              <div class="brand-text">
+                <div class="top">TRUTH ALONE</div>
+                <div class="bot">BIBLE CHURCH</div>
+              </div>
+            </div>`;
+        }
       }
       renderRows();
       renderPoster();
